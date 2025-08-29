@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "vite-plugin-pwa": "^1.0.3"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  }
+}
