@@ -14,6 +14,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 const STORAGE_KEY = "mhd_tracker_items_v1";
 const SETTINGS_KEY = "mhd_tracker_settings_v1";
 const NOTIFIED_KEY = "mhd_tracker_notified_v1";
+const PRO_KEY = "mhd_tracker_pro_v1";
+const MAX_FREE_ITEMS = 25;
 
 function uid() {
   return (
@@ -82,6 +84,7 @@ export default function App() {
     notifyExpired: true,
   });
   const [notified, setNotified] = useLocalStorage(NOTIFIED_KEY, {}); // { [id]: { soon: true, expired: true } }
+  const [isPro, setIsPro] = useLocalStorage(PRO_KEY, false);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all"); // all | ok | soon | expired
@@ -100,6 +103,13 @@ export default function App() {
   });
 
   const fileInputRef = useRef(null);
+  const isLimitReached = !isPro && items.length >= MAX_FREE_ITEMS;
+
+  function upgradeToPro() {
+    if (confirm("Pro-Version für 9,99€ freischalten? (Simuliert)")) {
+      setIsPro(true);
+    }
+  }
 
   // Derived: annotate status
   const annotated = useMemo(() => {
@@ -172,6 +182,10 @@ export default function App() {
     e.preventDefault();
     if (!form.name || !form.mhd) {
       alert("Bitte mindestens Name und MHD angeben.");
+      return;
+    }
+    if (!isPro && !form.id && items.length >= MAX_FREE_ITEMS) {
+      alert(`Freie Version erlaubt maximal ${MAX_FREE_ITEMS} Produkte. Bitte Pro-Version freischalten.`);
       return;
     }
     const record = {
@@ -247,6 +261,14 @@ export default function App() {
             <button onClick={() => fileInputRef.current?.click()} className="px-3 py-2 rounded-2xl shadow bg-white hover:bg-slate-100">Import</button>
           </div>
         </header>
+        {!isPro && (
+          <div className="mb-6 bg-amber-100 border border-amber-300 text-amber-900 p-4 rounded-2xl text-center">
+            <p className="mb-2">Freie Version: bis zu {MAX_FREE_ITEMS} Produkte mit Name und MHD.</p>
+            <button onClick={upgradeToPro} className="px-4 py-2 rounded-2xl bg-amber-500 text-white shadow hover:bg-amber-400">
+              Pro für 9,99€ freischalten
+            </button>
+          </div>
+        )}
 
         {/* Einstellungen */}
         <section className="mb-6">
@@ -278,47 +300,59 @@ export default function App() {
 
         {/* Formular */}
         <section className="mb-6">
+          {!isPro && isLimitReached && (
+            <div className="mb-4 text-center text-rose-700">Limit der freien Version erreicht.</div>
+          )}
           <form onSubmit={submitForm} className="grid md:grid-cols-4 gap-3 bg-white p-4 rounded-2xl shadow">
             <div className="md:col-span-2">
               <label className="text-sm font-medium">Artikelname *</label>
               <input className="w-full border rounded-xl p-2 mt-1" placeholder="z.B. Sandwich Chicken"
                 value={form.name} onChange={(e)=>setForm((f)=>({...f, name: e.target.value}))} />
             </div>
-            <div>
-              <label className="text-sm font-medium">SKU / EAN</label>
-              <input className="w-full border rounded-xl p-2 mt-1" value={form.sku}
-                onChange={(e)=>setForm((f)=>({...f, sku: e.target.value}))} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Kategorie</label>
-              <input className="w-full border rounded-xl p-2 mt-1" placeholder="Kühlware, Snacks…" value={form.category}
-                onChange={(e)=>setForm((f)=>({...f, category: e.target.value}))} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Lieferant</label>
-              <input className="w-full border rounded-xl p-2 mt-1" value={form.supplier}
-                onChange={(e)=>setForm((f)=>({...f, supplier: e.target.value}))} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Charge / LOT</label>
-              <input className="w-full border rounded-xl p-2 mt-1" value={form.lot}
-                onChange={(e)=>setForm((f)=>({...f, lot: e.target.value}))} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Menge</label>
-              <input type="number" min={1} className="w-full border rounded-xl p-2 mt-1" value={form.quantity}
-                onChange={(e)=>setForm((f)=>({...f, quantity: e.target.value}))} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Wareneingang</label>
-              <input type="date" className="w-full border rounded-xl p-2 mt-1" value={form.received}
-                onChange={(e)=>setForm((f)=>({...f, received: e.target.value}))} />
-            </div>
+            {isPro && (
+              <>
+                <div>
+                  <label className="text-sm font-medium">SKU / EAN</label>
+                  <input className="w-full border rounded-xl p-2 mt-1" value={form.sku}
+                    onChange={(e)=>setForm((f)=>({...f, sku: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Kategorie</label>
+                  <input className="w-full border rounded-xl p-2 mt-1" placeholder="Kühlware, Snacks…" value={form.category}
+                    onChange={(e)=>setForm((f)=>({...f, category: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Lieferant</label>
+                  <input className="w-full border rounded-xl p-2 mt-1" value={form.supplier}
+                    onChange={(e)=>setForm((f)=>({...f, supplier: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Charge / LOT</label>
+                  <input className="w-full border rounded-xl p-2 mt-1" value={form.lot}
+                    onChange={(e)=>setForm((f)=>({...f, lot: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Menge</label>
+                  <input type="number" min={1} className="w-full border rounded-xl p-2 mt-1" value={form.quantity}
+                    onChange={(e)=>setForm((f)=>({...f, quantity: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Wareneingang</label>
+                  <input type="date" className="w-full border rounded-xl p-2 mt-1" value={form.received}
+                    onChange={(e)=>setForm((f)=>({...f, received: e.target.value}))} />
+                </div>
+              </>
+            )}
             <div>
               <label className="text-sm font-medium">MHD *</label>
               <input type="date" className="w-full border rounded-xl p-2 mt-1" value={form.mhd}
                 onChange={(e)=>setForm((f)=>({...f, mhd: e.target.value}))} />
             </div>
+            {!isPro && (
+              <div className="md:col-span-4 text-sm text-center text-slate-600">
+                Weitere Felder nach Upgrade verfügbar.
+              </div>
+            )}
             <div className="md:col-span-4 flex gap-2">
               <button type="submit" className="px-4 py-2 rounded-2xl bg-slate-900 text-white shadow hover:bg-slate-800">
                 {form.id ? "Eintrag aktualisieren" : "Eintrag hinzufügen"}
@@ -363,12 +397,12 @@ export default function App() {
               <tr className="text-left text-sm">
                 <th className="p-3">Status</th>
                 <th className="p-3">Artikel</th>
-                <th className="p-3">SKU</th>
-                <th className="p-3">Kategorie</th>
-                <th className="p-3">Lieferant</th>
-                <th className="p-3">LOT</th>
-                <th className="p-3">Menge</th>
-                <th className="p-3">Wareneingang</th>
+                {isPro && <th className="p-3">SKU</th>}
+                {isPro && <th className="p-3">Kategorie</th>}
+                {isPro && <th className="p-3">Lieferant</th>}
+                {isPro && <th className="p-3">LOT</th>}
+                {isPro && <th className="p-3">Menge</th>}
+                {isPro && <th className="p-3">Wareneingang</th>}
                 <th className="p-3">MHD</th>
                 <th className="p-3">Tage</th>
                 <th className="p-3">Aktionen</th>
@@ -390,12 +424,12 @@ export default function App() {
                     </span>
                   </td>
                   <td className="p-3 font-medium">{it.name}</td>
-                  <td className="p-3">{it.sku}</td>
-                  <td className="p-3">{it.category}</td>
-                  <td className="p-3">{it.supplier}</td>
-                  <td className="p-3">{it.lot}</td>
-                  <td className="p-3">{it.quantity}</td>
-                  <td className="p-3 whitespace-nowrap">{it.received}</td>
+                  {isPro && <td className="p-3">{it.sku}</td>}
+                  {isPro && <td className="p-3">{it.category}</td>}
+                  {isPro && <td className="p-3">{it.supplier}</td>}
+                  {isPro && <td className="p-3">{it.lot}</td>}
+                  {isPro && <td className="p-3">{it.quantity}</td>}
+                  {isPro && <td className="p-3 whitespace-nowrap">{it.received}</td>}
                   <td className="p-3 whitespace-nowrap">{it.mhd}</td>
                   <td className={classNames("p-3 font-semibold", it.daysLeft < 0 ? "text-rose-700" : it.daysLeft <= settings.soonDays ? "text-amber-700" : "text-emerald-700")}>{isFinite(it.daysLeft) ? it.daysLeft : "—"}</td>
                   <td className="p-3">
@@ -408,7 +442,7 @@ export default function App() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="p-6 text-center text-slate-500">Keine Einträge gefunden.</td>
+                  <td colSpan={isPro ? 11 : 5} className="p-6 text-center text-slate-500">Keine Einträge gefunden.</td>
                 </tr>
               )}
             </tbody>
