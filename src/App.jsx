@@ -1,4 +1,9 @@
+// src/App.jsx  (Import-Block GANZ oben)
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import PaywallRC from "./components/PaywallRC";
+import { isPro, FREE_LIMIT } from "./entitlements";
+
+
 
 // =========================================
 // MHD-Tracker – Single-file React App
@@ -75,6 +80,27 @@ function sendNotification(title, body) {
 
 // ---- Main App ----
 export default function App() {
+  const [showPaywall, setShowPaywall] = useState(false);
+  function onClickExportJson() {
+  // Paywall: Export nur für Pro
+  if (!isPro()) { setShowPaywall(true); return; }
+
+  // ▼ 'items' ggf. durch deinen Array-Namen ersetzen
+  const data = JSON.stringify(items, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "mhd-data.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+{showPaywall && <PaywallRC onClose={() => setShowPaywall(false)} />}
+
+// Passe "items" an deinen State an (z. B. "entries", "products", "list" …)
+const itemsCount = Array.isArray(items) ? items.length : 0;
+
   const [items, setItems] = useLocalStorage(STORAGE_KEY, []);
   const [settings, setSettings] = useLocalStorage(SETTINGS_KEY, {
     soonDays: 7, // Schwelle „bald ablaufend“
@@ -205,7 +231,19 @@ export default function App() {
     setNotified((prev) => {
       const { [id]: _, ...rest } = prev; return rest;
     });
-  }
+  }function onClickExportJson() {
+  if (!isPro()) { setShowPaywall(true); return; } // Pro-Gate
+
+  const data = JSON.stringify(items, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "mhd-data.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 
   function exportJSON() {
     const blob = new Blob([JSON.stringify({ items, settings }, null, 2)], { type: "application/json" });
